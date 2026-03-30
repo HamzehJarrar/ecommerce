@@ -3,8 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const defaultMongo =
-  'mongodb+srv://Admin:Admin123@cluster0.5jemiir.mongodb.net/electronstore?appName=Cluster0';
-
+  
 export const config = {
   port: Number(process.env.PORT) || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
