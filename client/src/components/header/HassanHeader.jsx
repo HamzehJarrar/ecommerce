@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -8,18 +8,22 @@ import {
   IconButton,
   Badge,
   InputBase,
+  ClickAwayListener,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   FavoriteBorder as FavoriteIcon,
   ShoppingCartOutlined as CartIcon,
-  PersonOutline as PersonIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 import { ar } from '../../i18n/ar';
 import { useStore } from '../../contexts/StoreContext';
 import CartDrawer from '../cart/CartDrawer';
+import FavoritesDrawer from '../favorites/FavoritesDrawer';
+import SearchDropdown from './SearchDropdown';
+import { apiGet } from '../../services/api';
+import { formatPrice } from '../../utils/formatCurrency';
 
 const SearchWrap = styled('div')(({ theme }) => ({
   position: 'relative',
@@ -45,8 +49,12 @@ const SearchIconWrap = styled('div')(({ theme }) => ({
   top: 0,
   display: 'flex',
   alignItems: 'center',
-  pointerEvents: 'none',
+  cursor: 'pointer',
+  zIndex: 2,
   color: alpha(theme.palette.common.white, 0.7),
+  '&:hover': {
+    color: theme.palette.common.white,
+  },
 }));
 
 const StyledInput = styled(InputBase)(({ theme }) => ({
@@ -61,17 +69,69 @@ const StyledInput = styled(InputBase)(({ theme }) => ({
 
 function HassanHeader() {
   const [q, setQ] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
   const navigate = useNavigate();
   const { cart, favorites } = useStore();
+  const searchTimeout = useRef(null);
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const favoritesCount = favorites.length;
 
-  const handleSearch = (e) => {
-    if (e.key === 'Enter' && q.trim()) {
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+    if (q.trim().length > 1) {
+      setLoading(true);
+      setShowDropdown(true);
+      searchTimeout.current = setTimeout(async () => {
+        try {
+          const data = await apiGet(`/products?search=${encodeURIComponent(q.trim())}&limit=6`);
+          if (Array.isArray(data)) {
+            setResults(data);
+          } else if (data.products) {
+            setResults(data.products);
+          } else {
+            setResults([]);
+          }
+        } catch (err) {
+          console.error(err);
+          setResults([]);
+        } finally {
+          setLoading(false);
+        }
+      }, 300);
+    } else {
+      setResults([]);
+      setShowDropdown(false);
+      setLoading(false);
+    }
+
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, [q]);
+
+  const performSearch = () => {
+    if (q.trim()) {
+      setShowDropdown(false);
       navigate(`/products?search=${encodeURIComponent(q.trim())}`);
     }
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      performSearch();
+    }
+  };
+
+  const handleResultClick = (productId) => {
+    setShowDropdown(false);
+    setQ('');
+    navigate(`/product/${productId}`);
   };
 
   return (
@@ -135,33 +195,44 @@ function HassanHeader() {
           </Box>
 
           {/* Search Bar - Center */}
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
-            <SearchWrap>
-              <SearchIconWrap>
-                <SearchIcon />
-              </SearchIconWrap>
-              <StyledInput
-                placeholder={ar.searchPlaceholder || 'ابحث عن منتج...'}
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                onKeyDown={handleSearch}
-                inputProps={{ 'aria-label': 'search' }}
-              />
-            </SearchWrap>
-          </Box>
+          <ClickAwayListener onClickAway={() => setShowDropdown(false)}>
+            <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', position: 'relative' }}>
+              <SearchWrap>
+                <SearchIconWrap onClick={performSearch}>
+                  <SearchIcon />
+                </SearchIconWrap>
+                <StyledInput
+                  placeholder={ar.searchPlaceholder || 'ابحث عن منتج...'}
+                  value={q}
+                  onChange={(e) => {
+                    setQ(e.target.value);
+                    if (e.target.value.trim().length > 1) setShowDropdown(true);
+                  }}
+                  onFocus={() => {
+                    if (q.trim().length > 1) setShowDropdown(true);
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                  inputProps={{ 'aria-label': 'search' }}
+                />
+              </SearchWrap>
+              {showDropdown && (
+                <SearchDropdown
+                  loading={loading}
+                  results={results}
+                  q={q}
+                  onResultClick={handleResultClick}
+                  onSeeAllClick={performSearch}
+                  formatPrice={formatPrice}
+                  ar={ar}
+                />
+              )}
+            </Box>
+          </ClickAwayListener>
 
           {/* Action Icons - Right */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1.5 } }}>
             <IconButton
-              sx={{
-                color: 'white',
-                '&:hover': { background: 'rgba(255,255,255,0.1)' },
-              }}
-            >
-              <PersonIcon />
-            </IconButton>
-            
-            <IconButton
+              onClick={() => setFavoritesOpen(true)}
               sx={{
                 color: 'white',
                 '&:hover': { background: 'rgba(255,255,255,0.1)' },
@@ -199,21 +270,41 @@ function HassanHeader() {
         </Toolbar>
         
         {/* Mobile Search Bar */}
-        <Box sx={{ display: { xs: 'flex', md: 'none' }, px: 2, pb: 2, pt: 0.5 }}>
-          <SearchWrap sx={{ maxWidth: '100%', width: '100%' }}>
-            <SearchIconWrap>
-              <SearchIcon />
-            </SearchIconWrap>
-            <StyledInput
-              placeholder={ar.searchPlaceholder || 'ابحث عن منتج...'}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={handleSearch}
-            />
-          </SearchWrap>
-        </Box>
+        <ClickAwayListener onClickAway={() => setShowDropdown(false)}>
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, px: 2, pb: 2, pt: 0.5, position: 'relative' }}>
+            <SearchWrap sx={{ maxWidth: '100%', width: '100%' }}>
+              <SearchIconWrap onClick={performSearch}>
+                <SearchIcon />
+              </SearchIconWrap>
+              <StyledInput
+                placeholder={ar.searchPlaceholder || 'ابحث عن منتج...'}
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  if (e.target.value.trim().length > 1) setShowDropdown(true);
+                }}
+                onFocus={() => {
+                  if (q.trim().length > 1) setShowDropdown(true);
+                }}
+                onKeyDown={handleSearchKeyDown}
+              />
+            </SearchWrap>
+            {showDropdown && (
+              <SearchDropdown
+                loading={loading}
+                results={results}
+                q={q}
+                onResultClick={handleResultClick}
+                onSeeAllClick={performSearch}
+                formatPrice={formatPrice}
+                ar={ar}
+              />
+            )}
+          </Box>
+        </ClickAwayListener>
       </AppBar>
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+      <FavoritesDrawer open={favoritesOpen} onClose={() => setFavoritesOpen(false)} />
     </>
   );
 }

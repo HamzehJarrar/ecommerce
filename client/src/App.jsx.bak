@@ -1,0 +1,72 @@
+import React from 'react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Box } from '@mui/material';
+
+// Contexts
+import { LanguageProvider } from './contexts/LanguageContext';
+import { CartProvider } from './contexts/CartContext';
+
+// Layout Components
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+
+// Pages
+import HomePage from './pages/HomePage';
+import CartPage from './pages/CartPage';
+import ProductDetailsPage from './pages/ProductDetailsPage';
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#0989FF',
+    },
+    secondary: {
+      main: '#2C3E50',
+    },
+    background: {
+      default: '#F5F7FA',
+    },
+  },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", "Cairo", sans-serif',
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          borderRadius: 8,
+        },
+      },
+    },
+  },
+});
+
+function App() {
+  return (
+    <LanguageProvider>
+      <CartProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Router>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+              <Header />
+              <Box component="main" sx={{ flexGrow: 1 }}>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/product/:id" element={<ProductDetailsPage />} />
+                </Routes>
+              </Box>
+              <Footer />
+            </Box>
+          </Router>
+        </ThemeProvider>
+      </CartProvider>
+    </LanguageProvider>
+  );
+}
+
+export default App;

@@ -10,6 +10,7 @@ function ProductsPage() {
   const category = searchParams.get('category');
   const isOffer = searchParams.get('offer') === 'true';
   const isFeatured = searchParams.get('featured') === 'true';
+  const search = searchParams.get('search');
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +27,8 @@ function ProductsPage() {
           endpoint = '/products/featured/list?limit=50';
         } else if (category && category !== 'home') {
           endpoint = `/products?category=${category}&limit=50`;
+        } else if (search) {
+          endpoint = `/products?search=${encodeURIComponent(search)}&limit=50`;
         }
         
         let data = await apiGet(endpoint);
@@ -47,14 +50,16 @@ function ProductsPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [category, isOffer, isFeatured]);
+  }, [category, isOffer, isFeatured, search]);
 
   let pageTitle = 'جميع المنتجات';
   if (isOffer) pageTitle = 'عروض وخصومات';
   if (isFeatured) pageTitle = 'منتجات مميزة';
   if (category && category !== 'home') pageTitle = `قسم: ${category}`;
+  if (search) pageTitle = `نتائج البحث عن: "${search}"`;
 
   const onAddToCart = (product) => {
+    // This will be handled by the StoreContext/ProductCard usually
     console.log('add to cart', product._id);
   };
 
@@ -74,7 +79,7 @@ function ProductsPage() {
         </Grid>
       ) : products.length === 0 ? (
         <Box sx={{ py: 10, textAlign: 'center' }}>
-          <Typography variant="h5" color="text.secondary">لا توجد منتجات حالياً</Typography>
+          <Typography variant="h5" color="text.secondary">لا توجد منتجات تطابق بحثك حالياً</Typography>
         </Box>
       ) : (
         <Grid container spacing={2}>

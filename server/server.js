@@ -5,22 +5,22 @@ import { connectDatabase } from './config/database.js';
 async function start() {
   try {
     await connectDatabase();
-    console.log('تم الاتصال بقاعدة بيانات MongoDB');
+    console.log('Connected to MongoDB');
   } catch (err) {
-    console.error('فشل الاتصال بـ MongoDB:', err.message);
+    console.error('Failed to connect to MongoDB:', err.message);
     process.exit(1);
   }
 
-  const server = app.listen(config.port, () => {
+  const server = app.listen(5000, () => {
     console.log(
-      `الخادم يعمل في وضع ${config.nodeEnv} على المنفذ ${config.port}`,
+     `Server is running on port ${config.port}`,
     );
   });
 
   process.on('SIGTERM', () => {
-    console.log('SIGTERM: إغلاق الخادم');
+    console.log('SIGTERM: Closing server');
     server.close(() => {
-      console.log('تم إغلاق الخادم');
+      console.log('Server closed');
     });
   });
 }

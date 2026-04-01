@@ -8,7 +8,6 @@ const productSchema = new mongoose.Schema(
       ref: 'Category',
       required: true,
     },
-    /** تسمية التصنيف المعروضة على البطاقة (عربي) */
     categoryLabel: { type: String, required: true },
     discountPercent: { type: Number, default: 0 },
     originalPrice: { type: Number, required: true },
@@ -24,5 +23,9 @@ const productSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+productSchema.index({ category: 1 }); 
+productSchema.index({ featured: -1 });
+productSchema.index({ currentPrice: 1 });
+productSchema.index({ name: 'text', specs: 'text' });
 export const Product =
   mongoose.models.Product || mongoose.model('Product', productSchema);

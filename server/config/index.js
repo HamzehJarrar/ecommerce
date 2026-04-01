@@ -2,8 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const defaultMongo =
-  'mongodb+srv://Admin:Admin123@cluster0.5jemiir.mongodb.net/electronstore?appName=Cluster0';
+const defaultMongo = process.env.MONGODB_URI;
 
 export const config = {
   port: Number(process.env.PORT) || 5000,
@@ -13,7 +12,7 @@ export const config = {
   rateLimit: {
     windowMs: 15 * 60 * 1000,
     max: 100,
-    message: 'طلبات كثيرة من هذا العنوان، حاول لاحقاً.',
-  },
+    message: 'Too many requests from this IP, please try again later.',
+  },  
   jsonLimit: '10mb',
 };

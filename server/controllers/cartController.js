@@ -1,4 +1,4 @@
-import * as CartModel from '../models/CartModel.js';
+import * as CartModel from '../queries/CartModel.js';
 import * as api from '../views/apiResponse.js';
 
 export function get(req, res, next) {
